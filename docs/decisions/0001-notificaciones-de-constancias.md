@@ -78,4 +78,28 @@ Después de almacenar la constancia, la aplicación registra una notificación p
 
 Este registro de decisión arquitectónica (ADR) es una propuesta académica y mantiene el estado `proposed`.
 
-Su alcance se limita a documentar la decisión sobre la comunicación con el servicio externo de notificaciones; no pretende describir la arquitectura completa del sistema ConstanciaUV.
+Se documenta únicamente la decisión sobre la comunicación con el servicio externo de notificaciones, no la arquitectura completa de ConstanciaUV.
+
+### Revisión 1. Cambio en el proveedor de notificaciones
+
+**Cambio recibido:** el proveedor externo modifica su interfaz de comunicación y cambia la manera en que informa los errores de envío. Este ADR no supone un nuevo formato específico, ya que todavía no se dispone de su documentación técnica.
+
+**Impacto sobre la alternativa seleccionada:** en la Alternativa B, la comunicación con el proveedor está concentrada en el componente independiente encargado del envío de notificaciones.
+
+El cambio afecta principalmente la parte de dicho componente que interpreta las respuestas de error y determina si un envío debe reintentarse o marcarse como fallido.
+
+No afecta la generación ni el almacenamiento de las constancias, el historial ni el registro de notificaciones pendientes, por lo que el cambio puede localizarse en un componente específico.
+
+**Estado de la decisión:** la decisión se mantiene como `proposed` y su justificación original no cambia.
+
+Los argumentos basados en RT2, RT3 y RT4 no dependían del formato utilizado por el proveedor para informar los errores. Sin embargo, la información disponible cambia: aumenta el riesgo de interpretar incorrectamente los errores del proveedor y será necesario evaluar el nuevo contrato de comunicación cuando esté disponible.
+
+**Consecuencias y comprobaciones que deben actualizarse:**
+
+* **Consecuencia a revisar:** una clasificación incorrecta de los errores podría provocar que se descarten notificaciones que deberían reintentarse (afectando RT3), generar reintentos indefinidos o repetir solicitudes cuyo resultado es ambiguo (afectando RT4).
+
+* **Confirmación: comprobaciones que deben agregarse en una implementación futura** (aún no ejecutadas):
+  * Realizar pruebas de contrato del adaptador utilizando respuestas de error simuladas con el nuevo formato, verificando que cada error se clasifique correctamente como reintentable o definitivo.
+  * Verificar que los errores no reconocidos se consideren reintentables hasta alcanzar un límite de intentos y que posteriormente queden marcados para revisión, en lugar de descartarse.
+  * Verificar que los reintentos reutilicen el mismo identificador de solicitud, de manera que un resultado ambiguo no provoque el envío de una segunda notificación.
+  * Repetir las pruebas de continuidad de la generación utilizando un proveedor simulado fuera de servicio, para confirmar que el cambio no afecte el cumplimiento de RT2.
